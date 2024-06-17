@@ -78,7 +78,7 @@ class DistributionalSRDiscriminator(nn.Module):
 
         return vmap(
             vmap(
-                vmap(lambda model, z: model(z)),
+                vmap(lambda model, z: model(z, update_stats=True)),
                 **model_vmap_kwargs,
             ),
             **batch_vmap_kwargs,

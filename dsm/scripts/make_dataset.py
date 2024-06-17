@@ -6,6 +6,7 @@ from typing import Annotated
 
 import gymnasium as gym
 import jax
+import jax.numpy as jnp
 import numpy as np
 import tensorflow as tf
 import tqdm.rich as tqdm
@@ -35,9 +36,11 @@ def main(
     *,
     env_id: Annotated[Environment, tyro.conf.arg(name="env")],
     seed: int | None = None,
-    train_steps: int = 500_000,
+    # train_steps: int = 500_000,
+    train_steps: int = 100_000,
     policy_path: pathlib.Path,
-    num_eval_steps: int = 500_000,
+    # num_eval_steps: int = 500_000,
+    num_eval_steps: int = 100_000,
     sticky_action_prob: float = 0.0,
     force: bool = False,
 ):
@@ -56,6 +59,7 @@ def main(
         )
         @functools.partial(jax2tf.convert, with_gradient=False)
         def policy_apply(obs: np.ndarray, rng_key: np.ndarray) -> np.ndarray:
+            obs = jnp.expand_dims(obs, axis=0)
             return BaseJaxPolicy.sample_action(model.policy.actor_state, obs, rng_key)
 
         policy = tf.Module()
@@ -75,7 +79,8 @@ def main(
     transitions = [timestep_t]
     episode_index, episode_return = 0, 0.0
     for step in tqdm.tqdm(range(num_eval_steps)):
-        rng_key, proposed_action = policy_func(rng_key, timestep_t.observation)
+        # rng_key, proposed_action = policy_func(rng_key, timestep_t.observation)
+        rng_key, proposed_action = policy_func(rng_key, jnp.squeeze(timestep_t.observation))
         if action_t is None or rng.uniform() >= sticky_action_prob:
             action_t = proposed_action
         timestep_t = env.step(action_t)  # pyright: ignore
@@ -87,11 +92,14 @@ def main(
             episode_index += 1
             episode_return = 0.0
 
+        timestep_t = timestep_t._replace(observation=jnp.squeeze(timestep_t.observation))
         transitions.append(timestep_t)
 
     transitions = jax.tree_util.tree_map(lambda *arrs: np.vstack(arrs), *transitions)
     with dataset_path.open("wb") as fp:
         pickle.dump(transitions, fp)
+    
+    print('Program make_dataset.py done')
 
 
 if __name__ == "__main__":

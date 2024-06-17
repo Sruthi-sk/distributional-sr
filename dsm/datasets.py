@@ -3,6 +3,7 @@ import pathlib
 import pickle
 
 import jax
+import jax.numpy as jnp
 import numpy.typing as npt
 import tensorflow as tf
 import tf2jax
@@ -67,7 +68,7 @@ def load_policy(policy_path: pathlib.Path) -> Policy:
     @jax.jit
     def policy_fn(rng: jax.random.KeyArray, observation: jax.Array) -> tuple[jax.random.KeyArray, jax.Array]:
         rng, key = jax.random.split(rng)
-        action, _ = pure_policy_func(policy_params, observation, key)
+        action, _ = pure_policy_func(policy_params, jnp.squeeze(observation), key)
         return rng, action
 
     return policy_fn

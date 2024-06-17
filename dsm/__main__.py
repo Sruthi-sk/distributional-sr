@@ -161,7 +161,7 @@ def main(_) -> None:
     _stop_progress_on_breakpoint(pbar)
 
     checkpoint_manager = orbax.checkpoint.CheckpointManager(
-        workdir,
+        os.path.abspath(workdir),
         checkpointers={
             "generator": orbax.checkpoint.PyTreeCheckpointer(),
             "discriminator": orbax.checkpoint.PyTreeCheckpointer(),
@@ -185,15 +185,18 @@ def main(_) -> None:
             plotting.plot_samples(state.generator, jax.random.PRNGKey(0), config=config),
         )
         # TODO: comment out for one-step model
-        histograms, statistics = metrics.compute_distribution_metrics(
+        metrics.compute_distribution_metrics(
             state.generator, jax.random.PRNGKey(0), config=config
         )
-        metric_writer.write_scalars(step, statistics)
-        metric_writer.write_histograms(step, histograms)
-        metric_writer.write_images(
-            step,
-            plotting.plot_cdf(state.generator, jax.random.PRNGKey(0), config=config),
-        )
+        # histograms, statistics = metrics.compute_distribution_metrics(
+        #     state.generator, jax.random.PRNGKey(0), config=config
+        # )
+        # metric_writer.write_scalars(step, statistics)
+        # metric_writer.write_histograms(step, histograms)
+        # metric_writer.write_images(
+        #     step,
+        #     plotting.plot_cdf(state.generator, jax.random.PRNGKey(0), config=config),
+        # )
 
     def checkpoint_callback(state: State) -> None:
         step = state.step.item()
